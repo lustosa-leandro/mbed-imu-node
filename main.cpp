@@ -7,15 +7,15 @@
 
 #include "include/ICM20648.h"
 
-// Blinking rate in milliseconds
-#define BLINKING_RATE     1000ms
+void imu_thread();
 
-void process_imu_data();
+float gyr_x, gyr_y, gyr_z;
 
-//InterruptIn int_imu(PF12);
-InterruptIn int_button(BUTTON1);
+ICM20648 sensor(PC0, PC1, PC2, PC3, PF12);
 
-volatile int test;
+Mutex stdio_mutex;
+
+Thread IMU;
 
 int main() {
 
@@ -23,42 +23,33 @@ int main() {
     DigitalOut imu_enable(PF8); // 0: not powered, 1: powered
     imu_enable = 1;
 
-    // configure interrupts for button and IMU to same handler
-//    int_imu.rise(&process_imu_data);
-    int_button.rise(&process_imu_data);
-
     // configure a LED for testing purposes!
     DigitalOut led(LED1);
 
-    ICM20648 sensor(PC0, PC1, PC2, PC3, PF12);
+    ThisThread::sleep_for(2s);
 
-    test = 0;
-
-    printf("open comms!\n");
-    ThisThread::sleep_for(10000ms);
-
-    if (sensor.open())
+    if (sensor.open()) 
         printf("Device detected!\n");
 
-    float gyr_x, gyr_y, gyr_z;
+    IMU.start(imu_thread);
 
     while (true) {
-        ThisThread::sleep_for(BLINKING_RATE);
+        ThisThread::sleep_for(1s);
         led = !led;
-        printf("led toggle!! \n");
-        sensor.measure();
-        sensor.get_gyroscope(&gyr_x, &gyr_y, &gyr_z);
-        printf("gyr: %d  %d  %d\n", int(gyr_x), int(gyr_y), int(gyr_z));
-        if (test) {
-            printf("got an interrupt! \n");
-            test = 0;
-        }
+        stdio_mutex.lock();
+        printf("main!\n");
+        stdio_mutex.unlock();
     }
 
 }
 
-void process_imu_data() {
-    test = 1;
+void imu_thread() {
+    while (true) {
+        sensor.measure();
+        sensor.get_gyroscope(&gyr_x, &gyr_y, &gyr_z);
+        ThisThread::sleep_for(1s);
+        stdio_mutex.lock();
+        printf("gyr: %d  %d  %d\n", int(gyr_x), int(gyr_y), int(gyr_z));
+        stdio_mutex.unlock();
+    }
 }
-
-
