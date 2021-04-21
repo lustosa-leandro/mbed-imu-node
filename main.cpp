@@ -24,7 +24,8 @@ ICM20648 imu_device(PC0, PC1, PC2, PC3, PF12);
 
 // serial comms structures
 static BufferedSerial serial_in (PK0, PK2); // for incoming data from tip sensors
-static BufferedSerial serial_out(PF3, PF4); // for outgoing data to root sensors
+//static BufferedSerial serial_out(PF3, PF4); // for outgoing data to root sensors (in case serial)
+static BufferedSerial serial_out(USBTX, USBRX); // for outgoing data to root sensors (in case USB)
 mQueueRH hrIMUrx;
 mQueueWH hwIMUrx;
 mtIMUState *IMUs_;
@@ -111,7 +112,7 @@ void imu_periodic_callback() {
         imu_device.measure();
         imu_device.get_gyroscope(&gyr_x, &gyr_y, &gyr_z);
         gyro_mutex.unlock();
-        ThisThread::sleep_for(1s);
+        ThisThread::sleep_for(100ms);
     }
 }
 
@@ -122,7 +123,7 @@ void tip_imu_periodic_callback() {
         gyro_mutex.lock();
         printf("GYRO %d: %d %d %d\n", number_of_in_gyros_, int(gyr_x), int(gyr_y), int(gyr_z));
         gyro_mutex.unlock();
-        ThisThread::sleep_for(1s);
+        ThisThread::sleep_for(100ms);
     }
 }
 
