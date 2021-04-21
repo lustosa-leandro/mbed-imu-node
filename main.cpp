@@ -9,38 +9,39 @@
 #include "include/ICM20648.h"
 #include "include/mIMUs.h"
 
-// Maximum number of element the application buffer can contain
-#define MAXIMUM_BUFFER_SIZE 128
-
-Thread IMU;
-void imu_thread();
+Thread IMU_thread;
+void imu_periodic_callback();
 
 // the following should be active only on the tip IMU!!!
-Thread tip_IMU;
-void tip_imu_thread();
+Thread tip_IMU_thread;
+void tip_imu_periodic_callback();
 
-// rate-gyro data
+// rate-gyro data structures
 float gyr_x, gyr_y, gyr_z;
 Mutex gyro_mutex;
 
-ICM20648 sensor(PC0, PC1, PC2, PC3, PF12);
+ICM20648 imu_device(PC0, PC1, PC2, PC3, PF12);
 
-static BufferedSerial serial_in (PK0, PK2);
-static BufferedSerial serial_out(PF3, PF4);
+// serial comms structures
+static BufferedSerial serial_in (PK0, PK2); // for incoming data from tip sensors
+static BufferedSerial serial_out(PF3, PF4); // for outgoing data to root sensors
 mQueueRH hrIMUrx;
 mQueueWH hwIMUrx;
 mtIMUState *IMUs_;
 
+// (default) number of rate-gyros towards the tip (excluded this one!)
 int number_of_in_gyros_  = 0;
+// (default) number of rate-gyros towards the tip (included this one!)
 int number_of_out_gyros_ = 1;
 
+// private functions used by this module only
 void output_imus_data();
 
 DigitalIn button(BUTTON1);
 
 int main() {
 
-    // set UART desired properties (9600-8-N-1)
+    // set UART desired properties (115200-8-N-1)
     serial_in.set_baud(115200);
     serial_in.set_format(8, BufferedSerial::None, 1);
     serial_out.set_baud(115200);
@@ -53,28 +54,29 @@ int main() {
     }
     IMUs_ = mIMUSetup(hrIMUrx);
 
-    // power IMU on
+    // power IMU device on
     DigitalOut imu_enable(PF8); // 0: not powered, 1: powered
     imu_enable = 1;
 
-    // configure a LED for testing purposes!
+    // configure a LED for indicating UART RX data purposes!
     DigitalOut led(LED1);
 
+    // sleep a little before attempting to open IMU device!
     ThisThread::sleep_for(2s);
-
-    if (sensor.open()) 
+    if (imu_device.open()) 
         printf("Device detected!\n");
 
-    IMU.start(imu_thread);
+    // this thread periodically updates the angular velocity for this module
+    IMU_thread.start(imu_periodic_callback);
 
-    if (!button.read()) tip_IMU.start(tip_imu_thread);
-
-    // application buffer to receive the data
-    unsigned char buf;
+    // the BT0 button is pressed during initialization to indicate tip sensor!
+    // - this sensor will be responsable for initiating daisy chain comms
+    if (!button.read()) tip_IMU_thread.start(tip_imu_periodic_callback);
 
     while (true) {
 
         // transfer bytes from peripherical buffer to RAM
+        unsigned char buf;
         serial_in.read(&buf,1);
         mQueueWriteChar(hwIMUrx,buf);
 
@@ -103,17 +105,17 @@ int main() {
 
 }
 
-void imu_thread() {
+void imu_periodic_callback() {
     while (true) {
         gyro_mutex.lock();
-        sensor.measure();
-        sensor.get_gyroscope(&gyr_x, &gyr_y, &gyr_z);
+        imu_device.measure();
+        imu_device.get_gyroscope(&gyr_x, &gyr_y, &gyr_z);
         gyro_mutex.unlock();
         ThisThread::sleep_for(1s);
     }
 }
 
-void tip_imu_thread() {
+void tip_imu_periodic_callback() {
     while (true) {
         output_imus_data();
         // print all data at this node to screen!
