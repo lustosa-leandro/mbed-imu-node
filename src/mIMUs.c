@@ -156,12 +156,12 @@ static void StoreDATA_SO_FAR(mtIMU_DATA_SO_FAR *p, unsigned char *buf) {
     // skip the length as the STATUS message is always 8 bytes.
     unsigned char len = *buf++;
 
-    p->number_IMUs_so_far = mBinGetUShort(&buf);
+    p->number_IMUs_so_far = mBinGetShort(&buf);
 
     for (int i=0; i<p->number_IMUs_so_far; i++) {
-       p->rate_gyro_P[i] = mBinGetUShort(&buf);
-       p->rate_gyro_Q[i] = mBinGetUShort(&buf);
-       p->rate_gyro_R[i] = mBinGetUShort(&buf);
+       p->rate_gyro_P[i] = mBinGetShort(&buf);
+       p->rate_gyro_Q[i] = mBinGetShort(&buf);
+       p->rate_gyro_R[i] = mBinGetShort(&buf);
     }
 
     // Mark message as having been updated.

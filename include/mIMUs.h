@@ -120,11 +120,11 @@ typedef struct {
 
     unsigned char updated;
 
-    unsigned short number_IMUs_so_far;
+    signed short number_IMUs_so_far;
 
-    unsigned short rate_gyro_P[5];
-    unsigned short rate_gyro_Q[5];
-    unsigned short rate_gyro_R[5];
+    signed short rate_gyro_P[5];
+    signed short rate_gyro_Q[5];
+    signed short rate_gyro_R[5];
 
 } mtIMU_DATA_SO_FAR;
 

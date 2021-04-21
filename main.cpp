@@ -127,7 +127,7 @@ void tip_imu_thread() {
 void output_imus_data() {
 
     // maximum buffer size for this message is 4(sync,id,count)+2*23(U2 payload)+2(cksum)
-    unsigned short payload[3*number_of_out_gyros_+1];
+    signed short payload[3*number_of_out_gyros_+1];
     unsigned char buffer[4+sizeof(payload)+2], *p_end;
     unsigned short length;
     // create header with sync numbers, msg ID=16 and count=0
@@ -146,8 +146,8 @@ void output_imus_data() {
     payload[j] = int(gyr_z); j++;
     gyro_mutex.unlock();
     // populate packet with payload
-    for (int i=0; i<sizeof(payload)/sizeof(unsigned short); i++) {
-        p_end = mBinPutUShort(p_end, payload[i]);
+    for (int i=0; i<sizeof(payload)/sizeof(signed short); i++) {
+        p_end = mBinPutShort(p_end, payload[i]);
     }
     // write the checksums and close packet
     length = (unsigned char) mBinPacketClose(buffer, p_end);
