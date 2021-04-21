@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "PinNames.h"
 #include "mbed.h"
 
 #include "include/ICM20648.h"
 #include "include/mIMUs.h"
-#include "mbed_retarget.h"
 
 // Maximum number of element the application buffer can contain
 #define MAXIMUM_BUFFER_SIZE 128
@@ -35,6 +35,8 @@ int number_of_in_gyros_  = 0;
 int number_of_out_gyros_ = 1;
 
 void output_imus_data();
+
+DigitalIn button(BUTTON1);
 
 int main() {
 
@@ -64,8 +66,8 @@ int main() {
         printf("Device detected!\n");
 
     IMU.start(imu_thread);
-    // comment the following line except on the tip IMU!
-    tip_IMU.start(tip_imu_thread);
+
+    if (!button.read()) tip_IMU.start(tip_imu_thread);
 
     // application buffer to receive the data
     unsigned char buf;
@@ -80,7 +82,6 @@ int main() {
         unsigned char ID = 0;
         while ( (ID = mIMUParse(IMUs_)) != 0 ) { // Process all data stored in queue
             led = !led;
-            printf("Received message with ID: %d\n", ID);
             if (ID == 16) {
                 // read data and print on screen
                 number_of_in_gyros_ = IMUs_->DATA_SO_FAR.number_IMUs_so_far;
