@@ -39,9 +39,9 @@ void output_imus_data();
 int main() {
 
     // set UART desired properties (9600-8-N-1)
-    serial_in.set_baud(9600);
+    serial_in.set_baud(115200);
     serial_in.set_format(8, BufferedSerial::None, 1);
-    serial_out.set_baud(9600);
+    serial_out.set_baud(115200);
     serial_out.set_format(8, BufferedSerial::None, 1);
 
     // init UART state machine for handling incoming data parser
@@ -65,7 +65,7 @@ int main() {
 
     IMU.start(imu_thread);
     // comment the following line except on the tip IMU!
-    //tip_IMU.start(tip_imu_thread);
+    tip_IMU.start(tip_imu_thread);
 
     // application buffer to receive the data
     unsigned char buf;
